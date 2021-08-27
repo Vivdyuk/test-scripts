@@ -73,7 +73,7 @@ function myFunction(doc, range) {
 
     const diffRange = activeSheet.getRange(
         firstRow,
-        activeRange.getColumn() + 1 + neededWidth,
+        activeRange.getColumn() + neededWidth,
         rangeHeight,
         neededWidth
     );
