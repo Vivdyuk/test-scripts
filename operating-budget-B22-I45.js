@@ -1,39 +1,39 @@
 function myFunction(doc, range) {
-    var _ = Underscore.load();
 
     const spreadSheet = SpreadsheetApp.getActiveSpreadsheet();
     const activeSheet = spreadSheet.getSheetByName('Operating Budget');
     const activeRange = activeSheet.getRange('B22:I45');
     const neededWidth = 8;
-    const getTheValue = (letter, number) => activeSheet.getRange(`${letter}${number}`).getValue();
-
+    const getTheValue = (letter, number) => (
+        activeSheet.getRange(`${letter}${number}`).getValue()
+    )
 
     if (activeRange.getWidth() != neededWidth) {
-        throw new Error(`'choose a correct range in a sheet, not ${activeRange.getA1Notation()}'`);
+        throw new Error(`'choose a correct range in a sheet, not ${activeRange.getA1Notation()}'`)
     }
 
-    const sqlSheet = spreadSheet.getSheetByName('SQL');
+    const sqlsheet = spreadSheet.getSheetByName('SQL');
 
-    if (!sqlSheet) {
-        throw new Error('There\'s no SQL sheet');
+    if(!sqlsheet) {
+        throw new Error ('There\'s no SQL sheet');
     }
-
     const firstRow = activeRange.getRow();
     const lastRow = activeRange.getLastRow();
     const rangeHeight = lastRow - firstRow + 1;
     let startRow = firstRow;
     const filler = new Array(neededWidth).fill('');
 
+
     const formulas = _.times((rangeHeight), n => {
         const currentCell = firstRow + n;
         const cellCheckValue = getTheValue('A', currentCell);
 
-        if (cellCheckValue === '') {
+        if ( cellCheckValue === '') {
             startRow = currentCell + 1;
-            const result = [...filler];
-            result.splice(0, 1, `"${getTheValue('B', currentCell)}"`);
-
+            const result = [...filler]
+            result.splice(0, 1, `"${getTheValue('B', currentCell)}"`);;
             return result;
+
         }
 
         if (cellCheckValue === 'un-subtotal') {
@@ -59,9 +59,17 @@ function myFunction(doc, range) {
             '',
             `=SUMIFS(SQL!$D:$D,SQL!$E:$E,"UNRESTRICTED",SQL!$G:$G,A${currentCell})`
         ]
+
+
     })
 
-    const previousRangeInfo = activeRange.getValues();
+    const previousRangeInfo = activeRange.getValues().map(row => {
+        const result = row;
+
+        row.splice(0, 1, '')
+
+        return result;
+    });
 
     const diffRange = activeSheet.getRange(
         firstRow,
@@ -70,23 +78,23 @@ function myFunction(doc, range) {
         neededWidth
     );
 
-    activeRange.copyFormatToRange(
-        diffRange.getGridId(),
-        activeRange.getColumn() + 1 + neededWidth,
-        activeRange.getColumn() + 1 + neededWidth + neededWidth,
-        firstRow,
-        rangeHeight
-    )
+    // ? need the same format?
+   /*  activeRange.copyFormatToRange(
+         diffRange.getGridId(),
+         activeRange.getColumn() + 1 + neededWidth,
+         activeRange.getColumn() + 1 + neededWidth + neededWidth,
+         firstRow, rangeHeight
+     )*/
 
     diffRange.setValues(previousRangeInfo)
     activeRange.setFormulas(formulas);
     const actualValues = activeRange.getValues();
 
-    const compareColours = _.map(previousRangeInfo, (row, rowIndex) =>
-        _.map(row, (cell, cellIndex) =>
-            cell === actualValues[rowIndex][cellIndex] ? '#fff' : '#f00'
-        )
-    );
+    const compareColours = _.map(previousRangeInfo, (row, rowIndex) => {
+        return _.map(row, (cell, cellIndex) => {
+            return cell === actualValues[rowIndex][cellIndex] || cellIndex === 0  ? '#fff' : '#f00';
+        });
+    });
 
     diffRange.setBackgrounds(compareColours);
 }
