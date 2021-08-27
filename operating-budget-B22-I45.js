@@ -1,57 +1,92 @@
 function myFunction(doc, range) {
+    var _ = Underscore.load();
+
     const spreadSheet = SpreadsheetApp.getActiveSpreadsheet();
     const activeSheet = spreadSheet.getSheetByName('Operating Budget');
-    const activeRange = activeSheet.getActiveRange();
+    const activeRange = activeSheet.getRange('B22:I45');
+    const neededWidth = 8;
+    const getTheValue = (letter, number) => activeSheet.getRange(`${letter}${number}`).getValue();
 
-    if (activeRange.getA1Notation() !== 'B22:I45') {
-        throw new Error(`'choose a correct range in a sheet, not ${activeRange.getA1Notation()}'`)
+
+    if (activeRange.getWidth() != neededWidth) {
+        throw new Error(`'choose a correct range in a sheet, not ${activeRange.getA1Notation()}'`);
     }
 
-    const sqlsheet = spreadSheet.getSheetByName('SQL');
+    const sqlSheet = spreadSheet.getSheetByName('SQL');
 
-    if(!sqlsheet) {
-        throw new Error ('There\'s no SQL sheet');
+    if (!sqlSheet) {
+        throw new Error('There\'s no SQL sheet');
     }
 
-    const  fillPartsOfRange = (start, end) => {
-        const result = [];
-        let n = 0;
+    const firstRow = activeRange.getRow();
+    const lastRow = activeRange.getLastRow();
+    const rangeHeight = lastRow - firstRow + 1;
+    let startRow = firstRow;
+    const filler = new Array(neededWidth).fill('');
 
-        while ((start + n) < end) {
-            result.push([
-                `="  "&VLOOKUP(A${start + n},SQL!G:M,7,false)`,
-                `=SUMIFS(SQL!$A:$A,SQL!$E:$E,"UNRESTRICTED",SQL!$G:$G,A${start + n})`,
-                '',
-                `=SUMIFS(SQL!$B:$B,SQL!$E:$E,"UNRESTRICTED",SQL!$G:$G,A${start + n})`,
-                '',
-                `=SUMIFS(SQL!$C:$C,SQL!$E:$E,"UNRESTRICTED",SQL!$G:$G,A${start + n})`,
-                '',
-                `=SUMIFS(SQL!$D:$D,SQL!$E:$E,"UNRESTRICTED",SQL!$G:$G,A${start + n})`
-            ]);
+    const formulas = _.times((rangeHeight), n => {
+        const currentCell = firstRow + n;
+        const cellCheckValue = getTheValue('A', currentCell);
 
-            n++;
+        if (cellCheckValue === '') {
+            startRow = currentCell + 1;
+            const result = [...filler];
+            result.splice(0, 1, `"${getTheValue('B', currentCell)}"`);
+
+            return result;
         }
 
-        result.push([
-            '',
-            `=SUM(C${start}:C${end - 1})`,
-            '',
-            `=SUM(E${start}:E${end - 1})`,
-            '',
-            `=SUM(G${start}:G${end - 1})`,
-            '',
-            `=SUM(I${start}:I${end - 1})`
-        ])
+        if (cellCheckValue === 'un-subtotal') {
+            return [
+                `"${activeSheet.getRange(currentCell, activeRange.getColumn()).getValue()}"`,
+                `=SUM(C${startRow}:C${currentCell - 1})`,
+                '',
+                `=SUM(E${startRow}:E${currentCell - 1})`,
+                '',
+                `=SUM(G${startRow}:G${currentCell - 1})`,
+                '',
+                `=SUM(I${startRow}:I${currentCell - 1})`
+            ]
+        }
 
-        return result;
-    }
+        return [
+            `="  "&VLOOKUP(A${currentCell},SQL!G:M,7,false)`,
+            `=SUMIFS(SQL!$A:$A,SQL!$E:$E,"UNRESTRICTED",SQL!$G:$G,A${currentCell})`,
+            '',
+            `=SUMIFS(SQL!$B:$B,SQL!$E:$E,"UNRESTRICTED",SQL!$G:$G,A${currentCell})`,
+            '',
+            `=SUMIFS(SQL!$C:$C,SQL!$E:$E,"UNRESTRICTED",SQL!$G:$G,A${currentCell})`,
+            '',
+            `=SUMIFS(SQL!$D:$D,SQL!$E:$E,"UNRESTRICTED",SQL!$G:$G,A${currentCell})`
+        ]
+    })
 
-    const firstPart = fillPartsOfRange(22, 30);   // 22-30 , 9
-    const secondPart = fillPartsOfRange(32, 37);  // 32-37, 6
-    const thirdPart = fillPartsOfRange(39, 45);   // 39-45, 7
-    const filler = new Array(8).fill('');
+    const previousRangeInfo = activeRange.getValues();
 
-    const fullFormulas = [].concat(firstPart, [filler], secondPart, [filler],thirdPart);
+    const diffRange = activeSheet.getRange(
+        firstRow,
+        activeRange.getColumn() + 1 + neededWidth,
+        rangeHeight,
+        neededWidth
+    );
 
-    activeRange.setFormulas(fullFormulas);
+    activeRange.copyFormatToRange(
+        diffRange.getGridId(),
+        activeRange.getColumn() + 1 + neededWidth,
+        activeRange.getColumn() + 1 + neededWidth + neededWidth,
+        firstRow,
+        rangeHeight
+    )
+
+    diffRange.setValues(previousRangeInfo)
+    activeRange.setFormulas(formulas);
+    const actualValues = activeRange.getValues();
+
+    const compareColours = _.map(previousRangeInfo, (row, rowIndex) =>
+        _.map(row, (cell, cellIndex) =>
+            cell === actualValues[rowIndex][cellIndex] ? '#fff' : '#f00'
+        )
+    );
+
+    diffRange.setBackgrounds(compareColours);
 }

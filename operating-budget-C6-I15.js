@@ -17,7 +17,7 @@ function myFunction(doc, range) {
     const firstRow = activeRange.getRow();
     const lastRow = activeRange.getLastRow();
     const formulas = _.times((lastRow - firstRow + 1), n => {
-        if (activeSheet.getRange(`B${firstRow + n}`).getValue().startsWith('Total')) {
+        if (activeSheet.getRange(`B${firstRow + n}`).getValue().includes('Total')) {
             return [
                 `=SUM(C${firstRow}:C${lastRow - 2})`,
                 '',
@@ -29,7 +29,7 @@ function myFunction(doc, range) {
             ]
         }
 
-        if (activeSheet.getRange(`B${firstRow +n}`).getValue().startsWith('TOTAL')) {
+        if (activeSheet.getRange(`B${firstRow +n}`).getValue().includes('TOTAL')) {
             return [
                 `=C${lastRow - 1}`,
                 '',
