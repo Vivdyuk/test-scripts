@@ -54,3 +54,4 @@ function myFunction(doc, range) {
 
     activeRange.setFormulas(formulas);
 }
+

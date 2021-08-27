@@ -90,3 +90,4 @@ function myFunction(doc, range) {
 
     diffRange.setBackgrounds(compareColours);
 }
+
